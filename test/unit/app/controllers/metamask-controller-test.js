@@ -102,6 +102,7 @@ describe('MetaMaskController', function () {
     // add sinon method spies
     sandbox.spy(metamaskController.keyringController, 'createNewVaultAndKeychain')
     sandbox.spy(metamaskController.keyringController, 'createNewVaultAndRestore')
+    sandbox.spy(metamaskController.txController, 'newUnapprovedTransaction')
   })
 
   afterEach(function () {
@@ -815,6 +816,39 @@ describe('MetaMaskController', function () {
       metamaskController.setupUntrustedCommunication(streamTest, phishingMessageSender)
 
       await promise
+    })
+
+    it('adds a tabId and origin to requests', function (done) {
+      const messageSender = {
+        url: 'http://mycrypto.com',
+        tab: { id: 456 },
+      }
+      streamTest = createThoughStream((chunk, _, cb) => {
+        if (chunk.data && chunk.data.method) {
+          cb(null, chunk)
+        } else {
+          cb()
+        }
+      })
+
+      metamaskController.setupUntrustedCommunication(streamTest, messageSender)
+
+      streamTest.write({
+        name: 'provider',
+        data: {
+          id: 1999133338649204,
+          jsonrpc: '2.0',
+          params: ['mock tx params'],
+          method: 'eth_sendTransaction',
+        },
+      }, null, () => {
+        setTimeout(() => {
+          assert.equal(metamaskController.txController.newUnapprovedTransaction.getCall(0).args[0], 'mock tx params')
+          assert.equal(metamaskController.txController.newUnapprovedTransaction.getCall(0).args[1].tabId, 456)
+          assert.equal(metamaskController.txController.newUnapprovedTransaction.getCall(0).args[1].origin, 'mycrypto.com')
+          done()
+        })
+      })
     })
   })
 
