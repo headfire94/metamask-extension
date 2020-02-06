@@ -1478,7 +1478,6 @@ export default class MetamaskController extends EventEmitter {
     engine.push(createLoggerMiddleware({ origin }))
     engine.push(createOnboardingMiddleware({
       location,
-      tabId,
       registerOnboarding: this.onboardingController.registerOnboarding,
     }))
     // filter and subscription polyfills
